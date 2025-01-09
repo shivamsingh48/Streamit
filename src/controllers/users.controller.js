@@ -132,7 +132,7 @@ const logoutUser=asyncHandler(async (req,res)=>{
     await User.findByIdAndUpdate(
         user._id,
         {
-            $set: {refreshToken:undefined}
+            $unset: {refreshToken:1}
         },
         {
             new:true
@@ -151,7 +151,7 @@ const logoutUser=asyncHandler(async (req,res)=>{
 })
 
 const refreshAccessToken=asyncHandler(async (req,res)=>{
-    const incomingRefreshToken=req.cookie.refreshToken || req.body.refreshToken
+    const incomingRefreshToken=req.cookies?.refreshToken || req.body.refreshToken
 
     if(!incomingRefreshToken){
         throw new ApiError(401,"unauthorized request")
@@ -196,7 +196,7 @@ const changeCurrentPassword=asyncHandler(async (req,res)=>{
     const {oldPassword,newPassword}=req.body
 
     const user=await User.findById(req.user?._id)
-    const isPasswordCorrect=user.isPasswordCheck(oldPassword)
+    const isPasswordCorrect=await user.isPasswordCheck(oldPassword)
 
     if(!isPasswordCorrect){
         throw new ApiError(400,"Invalid old password")
@@ -207,9 +207,11 @@ const changeCurrentPassword=asyncHandler(async (req,res)=>{
 
     return res.status(200)
     .json(
-        200,
-        {},
-        "Password changed successfully"
+        new ApiResponse(
+            200,
+            {},
+            "Password changed successfully"
+        )
     )
 })
 
@@ -233,7 +235,7 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Something went wrong while fetching user details")
     }
 
-    const user=await User.findByIdAndDelete(
+    const user=await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
